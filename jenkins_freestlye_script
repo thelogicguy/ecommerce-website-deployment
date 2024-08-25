@@ -1,0 +1,14 @@
+# Stop and remove the previous container
+docker rm -f ecomms_container || true
+
+# Run JavaScript unit tests
+#npm install # Ensure dependencies are installed
+#npm test # Run the tests
+
+# If tests pass, proceed with building the Docker image
+# Build the Docker image
+docker build -t ecomms_nginx .
+
+# Run the new container
+docker run --name ecomms_container -d -p 8081:80 ecomms_nginx
+

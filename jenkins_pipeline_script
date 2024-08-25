@@ -1,0 +1,57 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_HUB_CREDENTIALS = credentials(''your-docker-hub-credentials-id'')
+    }
+
+    stages {
+        stage('Connect To Github') {
+            steps {
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[credentialsId: ''your-git-hub-credentials-id'', url: 'https://github.com/thelogicguy/ecommerce-website-deployment.git']])
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    sh 'docker build -t ecomms_nginx .'
+                }
+            }
+        }
+        stage('Tag Docker Image') {
+            steps {
+                script {
+                    sh 'docker tag ecomms_nginx thelogicguy/ecomms_nginx:v1.0'
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    sh '''
+                    echo $DOCKER_HUB_CREDENTIALS_PSW | docker login -u $DOCKER_HUB_CREDENTIALS_USR --password-stdin
+                    docker push thelogicguy/ecomms_nginx:v1.0
+                    '''
+                }
+            }
+        }
+        stage('Remove Existing Container') {
+            steps {
+                script {
+                    sh '''
+                    if [ $(docker ps -aq -f name=ecomms_container) ]; then
+                        docker rm -f ecomms_container
+                    fi
+                    '''
+                }
+            }
+        }
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh 'docker run -itd --name ecomms_container -p 8081:80 thelogicguy/ecomms_nginx:v1.0'
+                }
+            }
+        }
+    }
+}
